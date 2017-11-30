@@ -1,0 +1,3 @@
+Desafio - https://www.jaapsch.net/puzzles/snakecube.htm
+Algoritmo - http://www.mathematische-basteleien.de/snakecube.htm
+Versao Haskell - http://cdsoft.fr/haskell/snake.html
