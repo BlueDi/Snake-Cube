@@ -1,4 +1,6 @@
 :- use_module(library(clpfd)).
+:- dynamic dim/1.
+:- dynamic dim2/1.
 
 snake0([3,2,2,2,2,1,2,2,2,2,2,1,2,2,2,1,2,2,2,2,2,1,2,2,2,2,3]). % ECCCCSCCCCCSCCCSCCCCCSCCCCE   
 snake2([3,2,2,2,2,2,2,3]).
@@ -9,8 +11,13 @@ snake3([3,1,2,2,2,1,2,1,2,2,2,2,2,2,2,2,2,2,2,2,2,1,2,1,2,2,3]).
 	Transitions values are 1..6 standing for the six directions in space where the next cube is, Front, Left, Up, Back, Right, Down respectively.
 */
 snake_cube(Snake, NStraights, NSolutions):-
-	snake0(Snake),
+	snake2(Snake),
 	length(Snake, NCubes),
+	Dim is round(NCubes ** (1/3)),
+	asserta(dim(Dim)),
+	asserta(dim2(NCubes)),
+	StartPosition in 1..NCubes,
+	create_initial_cube(StartPosition, Cube),
 	
 	domain(Snake, 1, 3),
 	append([3], Tail, Snake),
@@ -22,24 +29,51 @@ snake_cube(Snake, NStraights, NSolutions):-
 	domain(Transitions, 1, 6),
 	
 	duos(Transitions),
-	trios(Transitions),
-	select_transition(Body, Transitions),
+	%trios(Transitions),
+	select_transitions(StartPosition, Body, Cube, Transitions),
 	labeling([], Transitions),
 	write(Transitions).
+	
+create_initial_cube(FirstCube, Cube):-
+	dim2(FinalLength),
+	length(Cube, FinalLength),
+	domain(Cube, 1, 2),
+	element(FirstCube, Cube, 2),
+	N1 #= FinalLength - 1,
+	global_cardinality(Cube, [1-N1, 2-1]).
 
-select_transition([], _).
-select_transition([C | Cubes], [T1, T2 | Transitions]):-
+select_transitions(_, [], _, [_]).
+select_transitions(SP, [C | Cubes], BigCube, [T1, T2 | Transitions]):-
 	C = 1,
-	((T1 #= 1 #\/ T1 #= 4) #/\ (T2 #= 1 #\/ T2 #= 4))
-	#\/ ((T1 #= 2 #\/ T1 #= 5) #/\ (T2 #= 2 #\/ T2 #= 5))
-	#\/ ((T1 #= 3 #\/ T1 #= 6) #/\ (T2 #= 3 #\/ T2 #= 6)),
-	select_transition(Cubes, [T2 | Transitions]).
-select_transition([C | Cubes], [T1, T2 | Transitions]):-
+	T1 #= T2,
+	update_big_cube(SP, T1, BigCube, NP, NewBigCube),
+	select_transitions(NP, Cubes, NewBigCube, [T2 | Transitions]).
+select_transitions(SP, [C | Cubes], BigCube, [T1, T2 | Transitions]):-
 	C = 2,
 	#\ ((T1 #= 1 #\/ T1 #= 4) #/\ (T2 #= 1 #\/ T2 #= 4)),
 	#\ ((T1 #= 2 #\/ T1 #= 5) #/\ (T2 #= 2 #\/ T2 #= 5)),
 	#\ ((T1 #= 3 #\/ T1 #= 6) #/\ (T2 #= 3 #\/ T2 #= 6)),
-	select_transition(Cubes, [T2 | Transitions]).
+	update_big_cube(SP, T1, BigCube, NP, NewBigCube),
+	select_transitions(NP, Cubes, NewBigCube, [T2 | Transitions]).
+
+/**
+	Updates the state of the final cube.
+*/
+update_big_cube(Position, N, BigCube, NP, NewBigCube):-
+	dim(Dim),
+	dim2(Dim2),
+	length(BigCube, ND),
+	length(NewBigCube, ND),
+	((N #= 1 #/\ NP #= Position + Dim)
+	#\/ (N #= 2 #/\ NP #= Position - 1)
+	#\/ (N #= 3 #/\ NP #= Position + Dim2)
+	#\/ (N #= 4 #/\ NP #= Position - Dim)
+	#\/ (N #= 5 #/\ NP #= Position + 1)
+	#\/ (N #= 6 #/\ NP #= Position - Dim2)),
+	NP #> 0,
+	NP #=< Dim,
+	element(NP, BigCube, 1),
+	element(NP, NewBigCube, 2).
 
 /**
 	In a sequence of 2 transitions there can't be the oposite movement.
