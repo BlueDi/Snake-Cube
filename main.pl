@@ -6,6 +6,9 @@ snake0([3,2,2,2,2,1,2,2,2,2,2,1,2,2,2,1,2,2,2,2,2,1,2,2,2,2,3]). % ECCCCSCCCCCSC
 snake2([3,2,2,2,2,2,2,3]).
 snake3([3,1,2,2,2,1,2,1,2,2,2,2,2,2,2,2,2,2,2,2,2,1,2,1,2,2,3]).
 
+dim(Dim).
+dim2(NCubes).
+
 /**
 	Cube values are 1..3, representing Straights, Corners, and Ends.
 	Transitions values are 1..6 standing for the six directions in space where the next cube is, Front, Left, Up, Back, Right, Down respectively.
@@ -17,7 +20,7 @@ snake_cube(Snake, NStraights, NSolutions):-
 	asserta(dim(Dim)),
 	asserta(dim2(NCubes)),
 	StartPosition in 1..NCubes,
-	create_initial_cube(StartPosition, Cube),
+	set_cube(StartPosition, Cube),
 	
 	domain(Snake, 1, 3),
 	append([3], Tail, Snake),
@@ -34,13 +37,18 @@ snake_cube(Snake, NStraights, NSolutions):-
 	labeling([], Transitions),
 	write(Transitions).
 	
-create_initial_cube(FirstCube, Cube):-
-	dim2(FinalLength),
-	length(Cube, FinalLength),
-	domain(Cube, 1, 2),
-	element(FirstCube, Cube, 2),
-	N1 #= FinalLength - 1,
+set_cube(FirstCube, Cube):-
+	dim2(NCubes),
+	initial_cube(NCubes, InitialCube),
+	!,
+	update_cube(FirstCube, InitialCube, Cube),
+	N1 #= NCubes - 1,
 	global_cardinality(Cube, [1-N1, 2-1]).
+
+initial_cube(0, []).
+initial_cube(N, [1 | Cube]):-
+	N1 is N - 1,
+	initial_cube(N1, Cube).
 
 select_transitions(_, [], _, [_]).
 select_transitions(SP, [C | Cubes], BigCube, [T1, T2 | Transitions]):-
@@ -62,8 +70,6 @@ select_transitions(SP, [C | Cubes], BigCube, [T1, T2 | Transitions]):-
 update_big_cube(Position, N, BigCube, NP, NewBigCube):-
 	dim(Dim),
 	dim2(Dim2),
-	length(BigCube, ND),
-	length(NewBigCube, ND),
 	((N #= 1 #/\ NP #= Position + Dim)
 	#\/ (N #= 2 #/\ NP #= Position - 1)
 	#\/ (N #= 3 #/\ NP #= Position + Dim2)
@@ -71,21 +77,28 @@ update_big_cube(Position, N, BigCube, NP, NewBigCube):-
 	#\/ (N #= 5 #/\ NP #= Position + 1)
 	#\/ (N #= 6 #/\ NP #= Position - Dim2)),
 	NP #> 0,
-	NP #=< Dim,
-	element(NP, BigCube, 1),
-	element(NP, NewBigCube, 2).
+	NP #=< Dim2,
+	update_cube(NP, BigCube, NewBigCube).
+
+update_cube(N, OldCube, NewCube):-
+	dim2(NCubes),
+	append(Head, Body, OldCube),
+	append([1], Tail, Body),
+	length(Head, LH),
+	LH > 0,
+	length(Tail, LT),
+	LT > 0,
+	append(Head, [2], NewHead),
+	append(NewHead, Tail, NewCube),
+	LH #= N - 1 #/\ LT #= NCubes - N,
+	!.
 
 /**
 	In a sequence of 2 transitions there can't be the oposite movement.
 	For example: if the next cube is on the left, after that there can't be a cube on the right.
 */
 duos([A, B | R]):-
-	#\ (A #= 1 #/\ B #= 4),
-	#\ (A #= 4 #/\ B #= 1),
-	#\ (A #= 2 #/\ B #= 5),
-	#\ (A #= 5 #/\ B #= 2),
-	#\ (A #= 3 #/\ B #= 6),
-	#\ (A #= 6 #/\ B #= 3),
+	#\ (B #= A + 3 #\/ B #= A - 3),
 	duos([B | R]).
 duos([_]).
 
