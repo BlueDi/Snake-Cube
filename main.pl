@@ -30,8 +30,13 @@ snake_cube(Snake, Positions):-
 	length(Positions, NCubes),
 	domain(Positions, 0, LastPosition),
 	all_distinct(Positions),
-	check_transition(Snake, Dim, Dim2, Positions),
-	labeling([], Positions).
+	check_transition_simple(Snake, Dim, Dim2, Positions),
+	labeling([], Positions),
+	write(Positions).
+
+check_transition_simple([3 | Snake], Dim, Dim2, Positions):-
+	element(1, Positions, 0),
+	check_transition(Snake, Dim, Dim2, Positions, 0).
 
 /**
 	Para mudar de linha tem que estar na mesma coluna e mesma face
@@ -57,9 +62,9 @@ check_transition([3 | Snake], Dim, Dim2, Positions):-
 		#/\ Mod1 #= First mod Dim2
 		#/\ Mod1 #= Second mod Dim2)
 	),
-	check_transition(Snake, Dim, Dim2, Positions, FirstT, SecondT).
-check_transition([3], _, _, _, _, _).
-check_transition([Head | Snake], Dim, Dim2, Positions, OneT, TwoT):-
+	check_transition(Snake, Dim, Dim2, Positions, 1).
+check_transition([3], _, _, _, _).
+check_transition([Head | Snake], Dim, Dim2, Positions, N1):-
 	element(OneT, Positions, N1),
 	element(TwoT, Positions, N2),
 	element(ThreeT, Positions, N3),
@@ -71,26 +76,7 @@ check_transition([Head | Snake], Dim, Dim2, Positions, OneT, TwoT):-
 	Delta #= Two - One,
 	% Constrain Straight
 	((Head #= 1 #/\
-		Three #= Two + Delta #/\
-		((abs(Delta) #= 1 #/\
-			% Change column
-			(Three #= Two + 1 #\/ Three #= Two - 1)
-				#/\ Mod1 #= Two // Dim
-				#/\ Mod1 #= Three // Dim)
-		#\/ (abs(Delta) #= Dim #/\
-			% Change line
-			(Three #= Two + Dim #\/ Three #= Two - Dim)
-				#/\ Mod1 #= Two mod Dim
-				#/\ Mod1 #= Three mod Dim
-				#/\ Mod2 #= Two // Dim2 
-				#/\ Mod2 #= Three // Dim2)
-		#\/ (abs(Delta) #= Dim2 #/\
-			% Change face
-			(Three #= Two + Dim2 #\/ Three #= Two - Dim2)
-				%#/\ Mod1 #= Two // Dim
-				%#/\ Mod1 #= Three // Dim
-				#/\ Mod1 #= Two mod Dim2
-				#/\ Mod1 #= Three mod Dim2))
+		Delta #= Three - Two
 	)
 	% Constrain Corner
 	; (Head #= 2 #/\
@@ -131,4 +117,4 @@ check_transition([Head | Snake], Dim, Dim2, Positions, OneT, TwoT):-
 				#/\ Mod2 #= Three // Dim2))))
 	)),
 	!,
-	check_transition(Snake, Dim, Dim2, Positions, TwoT, ThreeT).
+	check_transition(Snake, Dim, Dim2, Positions, N2).
