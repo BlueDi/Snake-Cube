@@ -12,57 +12,123 @@ snake3([3,1,2,2,2,1,2,1,2,2,2,2,2,2,2,2,2,2,2,2,2,1,2,1,2,2,3]).
 snake4([3,2,2,2,2,2,2,1,2,1,2,1,2,1,2,2,2,2,2,2,2,2,2,2,2,2,3]). % Most solutions
 dragons_tail([3,1,2,1,2,1,2,1,2,2,2,2,1,2,1,2,2,2,1,2,2,1,2,2,2,1,3]).
 
-dim(Dim).
-dim2(Dim2).
-nCubes(NCubes).
+dragons_tail2([3,1,2,2,2,1,2,2,1,2,2,2,1,2,1,2,2,2,2,1,2,1,2,1,2,1,3]).
 
 /**
 	Cube values are 1..3, representing Straights, Corners, and Ends.
-	Transitions values are 1..6 standing for the six directions in space where the next cube is, Front, Left, Up, Back, Right, Down respectively.
+	Positions is a list of values that represent the order ono wich the cube will be visited.
 */
-snake_cube(Snake):-
-	snake2(Snake),
+snake_cube(Snake, Positions):-
 	length(Snake, NCubes),
 	Dim is round(NCubes ** (1/3)),
-	Dim2 is round(NCubes ** (1/2)),
-	asserta(dim(Dim)),
-	asserta(dim2(Dim2)),
-	asserta(nCubes(NCubes)),
+	Dim2 is round(Dim ** 2),
+	LastPosition is NCubes - 1,
 
 	nth1(1, Snake, 3),
 	nth1(NCubes, Snake, 3),
 
 	length(Positions, NCubes),
-	domain(Positions, 1, NCubes),
+	domain(Positions, 0, LastPosition),
 	all_distinct(Positions),
-	check_transition(Snake, Positions),
-	labeling([], Positions),
-	write(Positions).
+	check_transition(Snake, Dim, Dim2, Positions),
+	labeling([], Positions).
 
-check_transition([3 | Snake], Positions):-
-	dim(Dim),
-	dim2(Dim2),
-	nCubes(NCubes),
-	First in 1..NCubes,
-	element(First, Positions, 1),
-	element(Second, Positions, 2),
-	Second #= First + 1 #\/ Second #= First - 1 #\/ Second #= First + Dim #\/ Second #= First - Dim #\/ Second #= First + Dim2 #\/ Second #= First - Dim2,
-	Second in 1..NCubes,
-	check_transition(Snake, Positions, First, Second).
-check_transition([3], _, _, _).
-check_transition([Head | Snake], Positions, One, Two):-
-	dim(Dim),
-	dim2(Dim2),
-	nCubes(NCubes),
-	element(One, Positions, N1),
-	element(Two, Positions, N2),
+/**
+	Para mudar de linha tem que estar na mesma coluna e mesma face
+	Para mudar de coluna tem que estar na mesma linha e mesma face
+	Para mudar de face tem que estar na mesma linha e mesma coluna
+*/
+check_transition([3 | Snake], Dim, Dim2, Positions):-
+	element(FirstT, Positions, 0),
+	element(SecondT, Positions, 1),
+	First #= FirstT - 1,
+	Second #= SecondT - 1,
+	(((Second #= First + 1 #\/ Second #= First - 1)
+		#/\ Mod1 #= First // Dim
+		#/\ Mod1 #= Second // Dim)
+	#\/ ((Second #= First + Dim #\/ Second #= First - Dim)
+		#/\ Mod1 #= First mod Dim 
+		#/\ Mod1 #= Second mod Dim
+		#/\ Mod2 #= First // Dim2 
+		#/\ Mod2 #= Second // Dim2)
+	#\/ ((Second #= First + Dim2 #\/ Second #= First - Dim2)
+		%#/\ Mod1 #= First // Dim
+		%#/\ Mod1 #= Second // Dim
+		#/\ Mod1 #= First mod Dim2
+		#/\ Mod1 #= Second mod Dim2)
+	),
+	check_transition(Snake, Dim, Dim2, Positions, FirstT, SecondT).
+check_transition([3], _, _, _, _, _).
+check_transition([Head | Snake], Dim, Dim2, Positions, OneT, TwoT):-
+	element(OneT, Positions, N1),
+	element(TwoT, Positions, N2),
+	element(ThreeT, Positions, N3),
+	One #= OneT - 1,
+	Two #= TwoT - 1,
+	Three #= ThreeT - 1,
 	N2 #= N1 + 1,
 	N3 #= N2 + 1,
 	Delta #= Two - One,
-	(Head #= 1 #/\ Three #= Two + Delta)
-	#\/ (Head #= 2 #/\ abs(Delta) #= 1 #/\ (Three #= Two + Dim #\/ Three #= Two - Dim #\/ Three #= Two + Dim2 #\/ Three #= Two - Dim2))
-	#\/ (Head #= 2 #/\ abs(Delta) #= Dim #/\ (Three #= Two + 1 #\/ Three #= Two - 1 #\/ Three #= Two + Dim2 #\/ Three #= Two - Dim2))
-	#\/ (Head #= 2 #/\ abs(Delta) #= Dim2 #/\ (Three #= Two + 1 #\/ Three #= Two - 1 #\/ Three #= Two + Dim #\/ Three #= Two - Dim)),
-	Three in 1..NCubes,
-	element(Three, Positions, N3),
-	check_transition(Snake, Positions, Two, Three).
+	% Constrain Straight
+	((Head #= 1 #/\
+		Three #= Two + Delta #/\
+		((abs(Delta) #= 1 #/\
+			% Change column
+			(Three #= Two + 1 #\/ Three #= Two - 1)
+				#/\ Mod1 #= Two // Dim
+				#/\ Mod1 #= Three // Dim)
+		#\/ (abs(Delta) #= Dim #/\
+			% Change line
+			(Three #= Two + Dim #\/ Three #= Two - Dim)
+				#/\ Mod1 #= Two mod Dim
+				#/\ Mod1 #= Three mod Dim
+				#/\ Mod2 #= Two // Dim2 
+				#/\ Mod2 #= Three // Dim2)
+		#\/ (abs(Delta) #= Dim2 #/\
+			% Change face
+			(Three #= Two + Dim2 #\/ Three #= Two - Dim2)
+				%#/\ Mod1 #= Two // Dim
+				%#/\ Mod1 #= Three // Dim
+				#/\ Mod1 #= Two mod Dim2
+				#/\ Mod1 #= Three mod Dim2))
+	)
+	% Constrain Corner
+	; (Head #= 2 #/\
+		((abs(Delta) #= 1 #/\
+			% Change line
+			(((Three #= Two + Dim #\/ Three #= Two - Dim)
+				#/\ Mod1 #= Two mod Dim
+				#/\ Mod1 #= Three mod Dim
+				#/\ Mod2 #= Two // Dim2 
+				#/\ Mod2 #= Three // Dim2)
+			% Change face
+			#\/ (Three #= Two + Dim2 #\/ Three #= Two - Dim2
+				%#/\ Mod1 #= Two // Dim
+				%#/\ Mod1 #= Three // Dim
+				#/\ Mod1 #= Two mod Dim2
+				#/\ Mod1 #= Three mod Dim2)))
+		#\/ (abs(Delta) #= Dim #/\ 
+			% Change column
+			(((Three #= Two + 1 #\/ Three #= Two - 1)
+				#/\ Mod1 #= Two // Dim
+				#/\ Mod1 #= Three // Dim)
+			% Change face
+			#\/ (Three #= Two + Dim2 #\/ Three #= Two - Dim2
+				%#/\ Mod1 #= Two // Dim
+				%#/\ Mod1 #= Three // Dim
+				#/\ Mod1 #= Two mod Dim2
+				#/\ Mod1 #= Three mod Dim2)))
+		#\/ (abs(Delta) #= Dim2 #/\ 
+			% Change column
+			(((Three #= Two + 1 #\/ Three #= Two - 1)
+				#/\ Mod1 #= Two // Dim
+				#/\ Mod1 #= Three // Dim) 
+			% Change line
+			#\/ ((Three #= Two + Dim #\/ Three #= Two - Dim)
+				#/\ Mod1 #= Two mod Dim 
+				#/\ Mod1 #= Three mod Dim
+				#/\ Mod2 #= Two // Dim2 
+				#/\ Mod2 #= Three // Dim2))))
+	)),
+	!,
+	check_transition(Snake, Dim, Dim2, Positions, TwoT, ThreeT).
