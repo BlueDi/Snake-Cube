@@ -76,7 +76,25 @@ check_transition([Head | Snake], Dim, Dim2, Positions, N2):-
 	Delta #= Two - One,
 	% Constrain Straight
 	((Head #= 1 #/\
-		Delta #= Three - Two
+		Delta #= Three - Two #/\
+		% Along a line
+		((abs(Delta) #= 1
+			#/\ Mod1 #= One // Dim 
+			#/\ Mod1 #= Two // Dim
+			#/\ Mod1 #= Three // Dim)
+		% Along a column
+		#\/ (abs(Delta) #= Dim
+			#/\ Mod1 #= One mod Dim
+			#/\ Mod1 #= Two mod Dim
+			#/\ Mod1 #= Three mod Dim
+			#/\ Mod2 #= One // Dim2
+			#/\ Mod2 #= Two // Dim2
+			#/\ Mod2 #= Three // Dim2)
+		% Along a layer
+		#\/ (abs(Delta) #= Dim2
+			#/\ Mod1 #= One mod Dim2
+			#/\ Mod1 #= Two mod Dim2
+			#/\ Mod1 #= Three mod Dim2))
 	)
 	% Constrain Corner
 	; (Head #= 2 #/\
