@@ -18,6 +18,8 @@ dragons_tail2([3,1,2,2,2,1,2,2,1,2,2,2,1,2,1,2,2,2,2,1,2,1,2,1,2,1,3]).
 */
 snake_cube(Snake):-
 	open('SnakeCubeSolutions.txt', write, Stream),
+	write(Stream, 'Snake Cube Solver\n\n'),
+	format(Stream, "Solving: ~w~N", [Snake]),
 	length(Snake, NCubes),
 	Dim is round(NCubes ** (1/3)),
 	Dim2 is round(Dim ** 2),
@@ -29,7 +31,7 @@ snake_cube(Snake):-
 	length(Positions, NCubes),
 	domain(Positions, 0, LastPosition),
 	all_distinct(Positions),
-	check_transition_simple(Snake, Dim, Dim2, Positions),
+	check_transition_optim(Snake, Dim, Dim2, Positions),
 	forall(labeling([], Positions), (write(Positions), nl, format(Stream, "~w~N", [Positions]))),
 	close(Stream).
 
