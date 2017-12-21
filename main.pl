@@ -5,6 +5,7 @@
 snake_2d([3,2,2,2,2,2,2,3]).
 snake_example1([3,2,2,2,2,1,2,2,2,2,2,1,2,2,2,1,2,2,2,2,2,1,2,2,2,2,3]).
 snake_example2([3,1,2,2,2,1,2,1,2,2,2,2,2,2,2,2,2,2,2,2,2,1,2,1,2,2,3]).
+snake_impossible([3,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,3]).
 unique_solution([3,2,2,2,2,2,2,2,2,1,2,1,2,2,2,1,2,2,2,2,2,2,2,2,2,2,3]). % A snake with a unique solution
 most_solutions([3,2,2,2,2,2,2,1,2,1,2,1,2,1,2,2,2,2,2,2,2,2,2,2,2,2,3]). % The snake with most solutions
 dragons_tail([3,1,2,1,2,1,2,1,2,2,2,2,1,2,1,2,2,2,1,2,2,1,2,2,2,1,3]).
@@ -33,12 +34,36 @@ snake_cube(Snake):-
 	close(Stream).
 
 /**
-	A way to only get the cubes that start on the same corner.
-*/	
-check_transition_simple([3 | Snake], Dim, Dim2, Positions):-
-	element(1, Positions, 0),
-	check_transition(Snake, Dim, Dim2, Positions, 0).
-
+	Restritions on the order of the pieces but optimized.
+	Ignores solutions that are rotations of another solution. 
+*/
+check_transition_optim([3 | Snake], Dim, Dim2, Positions):-
+	Mid is round(Dim / 2),
+	FirstSecondLine is Dim + 2,
+	MidSecondLine is Mid + Dim,
+	FirstT in 1..Mid #\/ FirstT in FirstSecondLine..MidSecondLine,
+	element(FirstT, Positions, 0),
+	element(SecondT, Positions, 1),
+	First #= FirstT - 1,
+	Second #= SecondT - 1,
+	% tem que ser abaixo da diagonal
+	% com o resto vou buscar a coluna
+	% com o quociente vou buscar a linha
+	% quociente tem que ser menor ou igual a coluna
+	Line2 #= Second // Dim,
+	Column2 #= Second mod Dim,
+	Column2 #> Line2,
+	((Second #= First + 1
+		#/\ Mod1 #= First // Dim
+		#/\ Mod1 #= Second // Dim)
+	#\/ (Second #= First + Dim
+		#/\ Mod1 #= First mod Dim 
+		#/\ Mod1 #= Second mod Dim
+		#/\ Mod2 #= First // Dim2 
+		#/\ Mod2 #= Second // Dim2)
+	),
+	check_transition(Snake, Dim, Dim2, Positions, 1).
+	
 /**
 	Restritions on the order of the pieces:
 		To change line, the piece has to be on the same column and in the same layer.
@@ -105,7 +130,7 @@ check_transition([Head | Snake], Dim, Dim2, Positions, N2):-
 				#/\ Mod1 #= Three mod Dim
 				#/\ Mod2 #= Two // Dim2 
 				#/\ Mod2 #= Three // Dim2)
-			% Change face
+			% Change layer
 			#\/ (Three #= Two + Dim2 #\/ Three #= Two - Dim2
 				#/\ Mod1 #= Two mod Dim2
 				#/\ Mod1 #= Three mod Dim2)))
@@ -114,7 +139,7 @@ check_transition([Head | Snake], Dim, Dim2, Positions, N2):-
 			(((Three #= Two + 1 #\/ Three #= Two - 1)
 				#/\ Mod1 #= Two // Dim
 				#/\ Mod1 #= Three // Dim)
-			% Change face
+			% Change layer
 			#\/ (Three #= Two + Dim2 #\/ Three #= Two - Dim2
 				#/\ Mod1 #= Two mod Dim2
 				#/\ Mod1 #= Three mod Dim2)))
