@@ -16,14 +16,14 @@ dragons_tail2([3,1,2,2,2,1,2,2,1,2,2,2,1,2,1,2,2,2,2,1,2,1,2,1,2,1,3]).
 	Pieces values are 1..3, representing Straights, Corners, and Ends.
 	Positions is a list of values that represent the order on wich the pieces of the cube will be visited.
 */
-snake_cube(Snake):-
+snake_cube(Snake, Mode):-
 	open('SnakeCubeSolutions.txt', write, Stream),
 	write(Stream, 'Snake Cube Solver\n\n'),
-	format(Stream, "Solving: ~w~N", [Snake]),
 	length(Snake, NCubes),
 	Dim is round(NCubes ** (1/3)),
 	Dim2 is round(Dim ** 2),
 	LastPosition is NCubes - 1,
+	format(Stream, "Solving: ~w - Dimension: ~w - ~w~N", [Snake, Dim, Mode]),
 
 	nth1(1, Snake, 3),
 	nth1(NCubes, Snake, 3),
@@ -32,8 +32,11 @@ snake_cube(Snake):-
 	domain(Positions, 0, LastPosition),
 	all_distinct(Positions),
 	check_transition_optim(Snake, Dim, Dim2, Positions),
-	forall(labeling([], Positions), (write(Positions), nl, format(Stream, "~w~N", [Positions]))),
-	close(Stream).
+	((Mode = 'one', labeling([], Positions), write(Positions), nl, format(Stream, "~w~N", [Positions]))
+	; (Mode = 'all', forall(labeling([], Positions), (write(Positions), nl, format(Stream, "~w~N", [Positions]))))),
+	close(Stream),
+	nl,
+	fd_statistics.
 
 /**
 	Restritions on the order of the pieces but optimized.
@@ -48,10 +51,6 @@ check_transition_optim([3 | Snake], Dim, Dim2, Positions):-
 	element(SecondT, Positions, 1),
 	First #= FirstT - 1,
 	Second #= SecondT - 1,
-	% tem que ser abaixo da diagonal
-	% com o resto vou buscar a coluna
-	% com o quociente vou buscar a linha
-	% quociente tem que ser menor ou igual a coluna
 	Line2 #= Second // Dim,
 	Column2 #= Second mod Dim,
 	Column2 #> Line2,
@@ -59,9 +58,9 @@ check_transition_optim([3 | Snake], Dim, Dim2, Positions):-
 		#/\ Mod1 #= First // Dim
 		#/\ Mod1 #= Second // Dim)
 	#\/ (Second #= First + Dim
-		#/\ Mod1 #= First mod Dim 
+		#/\ Mod1 #= First mod Dim
 		#/\ Mod1 #= Second mod Dim
-		#/\ Mod2 #= First // Dim2 
+		#/\ Mod2 #= First // Dim2
 		#/\ Mod2 #= Second // Dim2)
 	),
 	check_transition(Snake, Dim, Dim2, Positions, 1).
@@ -81,9 +80,9 @@ check_transition([3 | Snake], Dim, Dim2, Positions):-
 		#/\ Mod1 #= First // Dim
 		#/\ Mod1 #= Second // Dim)
 	#\/ ((Second #= First + Dim #\/ Second #= First - Dim)
-		#/\ Mod1 #= First mod Dim 
+		#/\ Mod1 #= First mod Dim
 		#/\ Mod1 #= Second mod Dim
-		#/\ Mod2 #= First // Dim2 
+		#/\ Mod2 #= First // Dim2
 		#/\ Mod2 #= Second // Dim2)
 	#\/ ((Second #= First + Dim2 #\/ Second #= First - Dim2)
 		#/\ Mod1 #= First mod Dim2
@@ -106,7 +105,7 @@ check_transition([Head | Snake], Dim, Dim2, Positions, N2):-
 		Delta #= Three - Two #/\
 		% Along a line
 		((abs(Delta) #= 1
-			#/\ Mod1 #= One // Dim 
+			#/\ Mod1 #= One // Dim
 			#/\ Mod1 #= Two // Dim
 			#/\ Mod1 #= Three // Dim)
 		% Along a column
@@ -130,13 +129,13 @@ check_transition([Head | Snake], Dim, Dim2, Positions, N2):-
 			(((Three #= Two + Dim #\/ Three #= Two - Dim)
 				#/\ Mod1 #= Two mod Dim
 				#/\ Mod1 #= Three mod Dim
-				#/\ Mod2 #= Two // Dim2 
+				#/\ Mod2 #= Two // Dim2
 				#/\ Mod2 #= Three // Dim2)
 			% Change layer
 			#\/ (Three #= Two + Dim2 #\/ Three #= Two - Dim2
 				#/\ Mod1 #= Two mod Dim2
 				#/\ Mod1 #= Three mod Dim2)))
-		#\/ (abs(Delta) #= Dim #/\ 
+		#\/ (abs(Delta) #= Dim #/\
 			% Change column
 			(((Three #= Two + 1 #\/ Three #= Two - 1)
 				#/\ Mod1 #= Two // Dim
@@ -145,16 +144,16 @@ check_transition([Head | Snake], Dim, Dim2, Positions, N2):-
 			#\/ (Three #= Two + Dim2 #\/ Three #= Two - Dim2
 				#/\ Mod1 #= Two mod Dim2
 				#/\ Mod1 #= Three mod Dim2)))
-		#\/ (abs(Delta) #= Dim2 #/\ 
+		#\/ (abs(Delta) #= Dim2 #/\
 			% Change column
 			(((Three #= Two + 1 #\/ Three #= Two - 1)
 				#/\ Mod1 #= Two // Dim
-				#/\ Mod1 #= Three // Dim) 
+				#/\ Mod1 #= Three // Dim)
 			% Change line
 			#\/ ((Three #= Two + Dim #\/ Three #= Two - Dim)
-				#/\ Mod1 #= Two mod Dim 
+				#/\ Mod1 #= Two mod Dim
 				#/\ Mod1 #= Three mod Dim
-				#/\ Mod2 #= Two // Dim2 
+				#/\ Mod2 #= Two // Dim2
 				#/\ Mod2 #= Three // Dim2))))
 	)),
 	!,
