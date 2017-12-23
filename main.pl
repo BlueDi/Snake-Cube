@@ -53,7 +53,7 @@ check_transition_optim([3 | Snake], Dim, Dim2, Positions):-
 	Second #= SecondT - 1,
 	Line2 #= Second // Dim,
 	Column2 #= Second mod Dim,
-	Column2 #> Line2,
+	(Column2 #> Line2 #/\
 	((Second #= First + 1
 		#/\ Mod1 #= First // Dim
 		#/\ Mod1 #= Second // Dim)
@@ -62,6 +62,11 @@ check_transition_optim([3 | Snake], Dim, Dim2, Positions):-
 		#/\ Mod1 #= Second mod Dim
 		#/\ Mod2 #= First // Dim2
 		#/\ Mod2 #= Second // Dim2)
+	))
+	#\/ (Line2 #> 0 #/\ Column2 #> 0 #/\ Column2 #=< MidSecondLine 
+		#/\ Second #= First + Dim2
+		#/\ Mod1 #= First mod Dim2
+		#/\ Mod1 #= Second mod Dim2
 	),
 	check_transition(Snake, Dim, Dim2, Positions, 1).
 	
